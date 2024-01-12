@@ -1,0 +1,23 @@
+services:
+  server:
+    container_name: "password_store_server"
+    build: .
+    ports:
+    - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    container_name: "password_store_db"
+    image: postgres:14
+    ports:
+    - "5431:5432"
+    environment:
+      - POSTGRES_USER=pg
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=password_store
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
