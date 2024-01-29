@@ -13,3 +13,13 @@ To check if the password provided is correct, retrieve the salt from the db for 
 - Gin: https://gin-gonic.com/docs/quickstart/
 - SHA256: https://gobyexample.com/sha256-hashes
 - RNG: https://www.educative.io/answers/how-to-generate-random-numbers-in-go-language
+- Redis Key Expire: https://stackoverflow.com/questions/36172745/how-does-redis-expire-keys
+- Session Management:
+  - https://www.sohamkamani.com/golang/session-cookie-authentication/
+  - https://www.sohamkamani.com/golang/password-authentication-and-storage/
+  - https://github.com/alexedwards/scs
+- Redis:
+  - Redis Go Client: https://github.com/redis/go-redis?tab=readme-ov-file
+  - Tutorial: https://tutorialedge.net/golang/go-redis-tutorial/
+- Postman:
+  - Cookies: https://learning.postman.com/docs/sending-requests/cookies/

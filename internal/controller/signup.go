@@ -1,20 +1,19 @@
 package controller
 
 import (
-	"crypto/sha256"
 	"fmt"
-	"math/rand"
 	"net/http"
-	"password_store/internal/models"
-	"strconv"
+	"password_store/internal/database"
+	"password_store/internal/session"
+	"password_store/internal/util"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func SignUpController(c *gin.Context, db *gorm.DB) {
+func SignUpController(c *gin.Context, db *gorm.DB, sessionManager *session.SessionManager) {
 	// bind the request body to the struct RawCredentials
-	var rc models.RawCredentials
+	var rc database.RawCredentials
 	c.Bind(&rc)
 
 	// print out the values in the struct
@@ -25,7 +24,8 @@ func SignUpController(c *gin.Context, db *gorm.DB) {
 	fmt.Println(password)
 
 	// check if the username provided is used. Each username can only be used once
-	var storedCredentials models.StoredCredentials
+	// If result.Error == nil -> you didn't manage to find a record -> username is already in use
+	var storedCredentials database.StoredCredentials
 	if result := db.First(&storedCredentials, "username = ?", username); result.Error == nil {
 		// fmt.Println(result.Error)
 		c.JSON(http.StatusOK, gin.H{
@@ -36,19 +36,17 @@ func SignUpController(c *gin.Context, db *gorm.DB) {
 	}
 
 	// generate the salt
-	salt := rand.Intn(10000000000000)
+	salt := util.GenerateRandomString(20)
 	fmt.Println(salt)
 
-	combinedString := password + strconv.Itoa(salt)
+	combinedString := password + salt
 	fmt.Println(combinedString)
 
 	// compute the hash
-	h := sha256.New()
-	h.Write([]byte(combinedString))
-	hash := h.Sum(nil)
-	fmt.Printf("%x", hash)
+	hash := util.Hash([]byte(combinedString))
+	fmt.Printf("%x", string(hash))
 
-	storedCredentials = models.StoredCredentials{
+	storedCredentials = database.StoredCredentials{
 		Username: username,
 		Salt:     salt,
 		Hash:     hash,

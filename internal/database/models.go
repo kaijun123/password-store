@@ -1,4 +1,4 @@
-package models
+package database
 
 // Credentials provided by the user during sign-up and sign-in
 type RawCredentials struct {
@@ -9,6 +9,6 @@ type RawCredentials struct {
 // Struct for data saved in the db
 type StoredCredentials struct {
 	Username string `gorm:"primaryKey"`
-	Salt     int
+	Salt     string
 	Hash     []byte
 }
