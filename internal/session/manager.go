@@ -59,32 +59,32 @@ func (m *SessionManager) createSessionId(username string) string {
 }
 
 func (m *SessionManager) SetSession(username string) (string, error) {
-	cookie := CreateSession(username, m.expirationDurationInSeconds)
-	cookieBytes, err := json.Marshal(cookie)
+	session := CreateSession(username, m.expirationDurationInSeconds)
+	sessionBytes, err := json.Marshal(session)
 	if err != nil {
 		return "", err
 	}
 
 	// Right a mechanism to generate the sessionId
 	sessionId := m.createSessionId(username)
-	if err = m.sessionStore.Set(sessionId, cookieBytes, m.expirationDurationInSeconds); err != nil {
+	if err = m.sessionStore.Set(sessionId, sessionBytes, m.expirationDurationInSeconds); err != nil {
 		return "", err
 	}
 	return sessionId, nil
 }
 
 func (m *SessionManager) GetSession(sessionId string) (Session, error) {
-	cookie := CreateSession("", 0)
+	session := CreateSession("", 0)
 
-	cookieBytes, err := m.sessionStore.Get(sessionId)
+	sessionBytes, err := m.sessionStore.Get(sessionId)
 	if err != nil {
-		return cookie, err
+		return session, err
 	}
 
-	if err = json.Unmarshal(cookieBytes, &cookie); err != nil {
-		return cookie, err
+	if err = json.Unmarshal(sessionBytes, &session); err != nil {
+		return session, err
 	}
-	return cookie, nil
+	return session, nil
 }
 
 func (m *SessionManager) DeleteSession(sessionId string) error {

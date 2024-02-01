@@ -57,6 +57,7 @@ func SignUpController(c *gin.Context, db *gorm.DB, sessionManager *session.Sessi
 			"sign-up": "fail",
 			"error":   result.Error,
 		})
+		return
 	}
 
 	// sends back a sample response

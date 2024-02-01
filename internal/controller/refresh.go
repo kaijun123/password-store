@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"password_store/internal/session"
 
@@ -8,42 +9,23 @@ import (
 )
 
 func RefreshCookieHandler(c *gin.Context, sessionManager *session.SessionManager) {
-	sessionId, err := c.Cookie(sessionManager.GetCookieName())
-	if err != nil {
-		if err != http.ErrNoCookie { // bad request
-			c.JSON(http.StatusBadRequest, gin.H{
-				"refresh-cookie": "fail",
-				"error":          "bad request",
-			})
-			return
-		} else { // no cookie
-			c.JSON(http.StatusForbidden, gin.H{
-				"refresh-cookie": "fail",
-				"error":          "no cookie",
-			})
-			return
-		}
-	}
 
-	existingSession, err := sessionManager.GetSession(sessionId)
-	if err != nil { // no such session stored in the server
-		c.JSON(http.StatusForbidden, gin.H{
-			"refresh-cookie": "fail",
-			"error":          "invalid session",
+	authStatus, hasAuthStatus := c.Get("Auth Status")
+	fmt.Println("Auth Status: ", authStatus)
+
+	if !hasAuthStatus { // this is an error
+		c.JSON(http.StatusBadRequest, gin.H{
+			"sign-in": "fail",
 		})
 		return
-	} else { // has a session stored in the server
-		if existingSession.IsExpired() { // session expired
-			c.JSON(http.StatusForbidden, gin.H{
-				"refresh-cookie": "fail",
-				"error":          "session expired",
-			})
-			return
-		} else { // valid session: create new session and delete old session
+	} else {
+		if authStatus == "Authenticated" { // Authenticated
+			sessionId, _ := c.Cookie(sessionManager.GetCookieName()) // Error already handled in Auth middleware
+			existingSession, _ := sessionManager.GetSession(sessionId)
 
 			newSessionId, err := sessionManager.SetSession(existingSession.Username)
 			if err != nil {
-				c.JSON(http.StatusOK, gin.H{
+				c.JSON(http.StatusForbidden, gin.H{
 					"refresh-cookie": "fail",
 					"error":          "unable to refresh cookie",
 				})
@@ -60,12 +42,18 @@ func RefreshCookieHandler(c *gin.Context, sessionManager *session.SessionManager
 				return
 			} else {
 				SetCookieHandler(c, sessionManager.GetCookieName(), newSessionId, sessionManager.GetExpiryDuration(), "/", "localhost", false, false)
-				c.JSON(http.StatusForbidden, gin.H{
+				c.JSON(http.StatusOK, gin.H{
 					"refresh-cookie": "successful",
 					"error":          "null",
 				})
 				return
 			}
+		} else {
+			c.JSON(http.StatusOK, gin.H{
+				"refresh-cookie": "fail",
+				"error":          "not authenticated",
+			})
+			return
 		}
 	}
 }

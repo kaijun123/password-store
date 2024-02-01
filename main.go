@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"password_store/internal/controller"
+	"password_store/internal/middleware"
 	"password_store/internal/session"
 
 	"github.com/gin-gonic/gin"
@@ -29,21 +30,41 @@ func main() {
 	database.AutoMigrate()
 
 	router := gin.Default()
-	router.POST("v1/sign-in", func(c *gin.Context) {
-		controller.SignInController(c, database.Db, sessionManager)
-	})
 
-	router.POST("v1/sign-up", func(c *gin.Context) {
-		controller.SignUpController(c, database.Db, sessionManager)
-	})
+	v1 := router.Group("/v1")
+	{
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/sign-up", func(c *gin.Context) {
+				controller.SignUpController(c, database.Db, sessionManager)
+			})
 
-	router.POST("v1/refresh-cookie", func(c *gin.Context) {
-		controller.RefreshCookieHandler(c, sessionManager)
-	})
+			auth.POST("/sign-in", func(c *gin.Context) {
+				middleware.AuthMiddleware(c, *sessionManager)
+			}, func(c *gin.Context) {
+				controller.SignInController(c, database.Db, sessionManager)
+			})
 
-	router.POST("v1/delete-user", func(c *gin.Context) {
-		controller.DeleteUserController(c, database.Db)
-	})
+			auth.POST("/logout", func(c *gin.Context) {
+				middleware.AuthMiddleware(c, *sessionManager)
+			}, func(c *gin.Context) {
+				controller.LogoutHandler(c, sessionManager)
+			})
+
+			auth.POST("/refresh-cookie", func(c *gin.Context) {
+				middleware.AuthMiddleware(c, *sessionManager)
+			}, func(c *gin.Context) {
+				controller.RefreshCookieHandler(c, sessionManager)
+			})
+		}
+
+		// admin := v1.Group("/admin")
+		// {
+		// 	admin.POST("/delete-user", func(c *gin.Context) {
+		// 		controller.DeleteUserController(c, database.Db)
+		// 	})
+		// }
+	}
 
 	router.Run()
 }

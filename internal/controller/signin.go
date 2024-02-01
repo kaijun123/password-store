@@ -22,26 +22,29 @@ func SignInController(c *gin.Context, db *gorm.DB, sessionManager *session.Sessi
 	fmt.Println(username)
 	fmt.Println(password)
 
-	// check if the cookie is sent in the request, obtain cookie from request header;
-	sessionId, err := c.Cookie(sessionManager.GetCookieName())
-	if err != nil {
-		// bad request
-		if err != http.ErrNoCookie {
+	authStatus, hasAuthStatus := c.Get("Auth Status")
+	fmt.Println("Auth Status: ", authStatus)
+
+	if !hasAuthStatus { // this is an error
+		c.JSON(http.StatusBadRequest, gin.H{
+			"sign-in": "fail",
+			"error":   "bad request",
+		})
+		return
+	} else {
+		if authStatus == "Authenticated" { // Authenticated
 			c.JSON(http.StatusBadRequest, gin.H{
-				"sign-in": "fail",
-				"error":   "bad request",
+				"sign-in": "success",
+				"error":   "null",
 			})
 			return
-		} else {
-
-			// Case 1: Login in using username and password
-			// check if the username exists in the db
-			// if result.Error != nil -> you managed to find a record -> username exists in the db
+		} else { // Not Authenticated: Log in using username and password
 			var storedCredentials database.StoredCredentials
 			if result := db.First(&storedCredentials, "username = ?", username); result.Error != nil {
+				fmt.Println("Cannot find credentials in database")
 				c.JSON(http.StatusForbidden, gin.H{
 					"sign-in": "fail",
-					"error":   "no such user",
+					"error":   "no account",
 				})
 				return
 			}
@@ -74,37 +77,12 @@ func SignInController(c *gin.Context, db *gorm.DB, sessionManager *session.Sessi
 				})
 				return
 			} else {
+				fmt.Println("hash is not equal")
 				c.JSON(http.StatusForbidden, gin.H{
 					"sign-in": "fail",
-					"error":   "incorrect username and password",
+					"error":   "invalid credentials",
 				})
 				return
-			}
-		}
-	} else {
-
-		// Case 2: Log in using cookie
-		// retrieve session info from the session store; check if session has expired
-		session, err := sessionManager.GetSession(sessionId)
-		if err != nil { // no such session stored in the server
-			c.JSON(http.StatusForbidden, gin.H{
-				"sign-in": "fail",
-				"error":   "invalid session",
-			})
-			return
-		} else { // has a session stored in the server
-			if session.IsExpired() { // session expired
-				sessionManager.DeleteSession(sessionId) // ignore error as of now
-				c.JSON(http.StatusForbidden, gin.H{
-					"sign-in": "fail",
-					"error":   "session expired",
-				})
-				return
-			} else { // valid session
-				c.JSON(http.StatusOK, gin.H{
-					"sign-in": "successful",
-					"error":   "null",
-				})
 			}
 		}
 	}

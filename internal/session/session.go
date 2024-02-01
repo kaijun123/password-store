@@ -8,11 +8,11 @@ type Session struct {
 }
 
 func CreateSession(username string, expiry int) Session {
-	cookie := Session{
+	session := Session{
 		Username: username,
 		Expiry:   time.Now().Add(time.Duration(expiry) * time.Second), // calculate the expiry time
 	}
-	return cookie
+	return session
 }
 
 func (s *Session) IsExpired() bool {
