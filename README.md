@@ -23,3 +23,16 @@ To check if the password provided is correct, retrieve the salt from the db for 
   - Tutorial: https://tutorialedge.net/golang/go-redis-tutorial/
 - Postman:
   - Cookies: https://learning.postman.com/docs/sending-requests/cookies/
+- Gin:
+  - https://techwasti.com/routing-in-go-gin-framework
+  - https://medium.com/@ansujain/mastering-middleware-in-go-tips-tricks-and-real-world-use-cases-79215e72b4a8
+  - https://stackoverflow.com/questions/62739044/how-to-share-variables-between-middlewares-in-go-gin
+  - https://stackoverflow.com/questions/62608429/how-to-combine-group-of-routes-in-gin
+
+
+
+https://blog.jetbrains.com/go/2022/11/22/comprehensive-guide-to-testing-in-go/
+https://www.digitalocean.com/community/tutorials/how-to-write-unit-tests-in-go-using-go-test-and-the-testing-package
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+https://medium.com/@gopal96685/handling-cookies-with-gin-framework-in-go-f119358c9cf3#:~:text=Setting%20a%20Cookie%20in%20Gin&text=You%20can%20use%20the%20SetCookie,The%20value%20of%20the%20cookie.
+https://learning.postman.com/docs/sending-requests/cookies/#using-the-cookie-manager

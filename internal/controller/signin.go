@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"net/http"
 	"password_store/internal/database"
-	"password_store/internal/session"
+	"password_store/internal/kvStore"
 	"password_store/internal/util"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func SignInController(c *gin.Context, db *gorm.DB, sessionManager *session.SessionManager) {
+func SignInController(c *gin.Context, db *gorm.DB, sessionManager *kvStore.SessionManager) {
 	// bind the request body to the struct RawCredentials
 	var rc database.RawCredentials
 	c.Bind(&rc)

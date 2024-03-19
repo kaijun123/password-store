@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"net/http"
-	"password_store/internal/session"
+	"password_store/internal/kvStore"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,7 +10,7 @@ import (
 // TODO: Create an enum for the AuthStatus
 
 // checks if there is an existing session
-func AuthMiddleware(c *gin.Context, sessionManager session.SessionManager) {
+func AuthMiddleware(c *gin.Context, sessionManager kvStore.SessionManager) {
 	sessionId, err := c.Cookie(sessionManager.GetCookieName())
 	if err != nil {
 		// bad request

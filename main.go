@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"password_store/internal/controller"
+	"password_store/internal/kvStore"
 	"password_store/internal/middleware"
-	"password_store/internal/session"
 
 	"github.com/gin-gonic/gin"
 
@@ -20,10 +20,11 @@ func main() {
 	// Seems like the format is "postgres://{POSTGRES_USER}:{host}:{container_port}/{POSTGRES_DB}"
 	// dbURL := "postgres://pg:pass@db:5432/password_store"
 
-	redis := &session.Redis{}
+	redis := &kvStore.Redis{}
 	redis.CreateClient()
 
-	sessionManager := session.NewDefaultManager(redis)
+	sessionManager := kvStore.NewSessionManager(redis)
+	idempotencyManager := kvStore.NewIdempotencyManager(redis)
 
 	database := &database.Database{}
 	database.Init()

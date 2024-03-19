@@ -3,12 +3,12 @@ package controller
 import (
 	"fmt"
 	"net/http"
-	"password_store/internal/session"
+	"password_store/internal/kvStore"
 
 	"github.com/gin-gonic/gin"
 )
 
-func LogoutHandler(c *gin.Context, sessionManager *session.SessionManager) {
+func LogoutHandler(c *gin.Context, sessionManager *kvStore.SessionManager) {
 
 	authStatus, hasAuthStatus := c.Get("Auth Status")
 	fmt.Println("Auth Status: ", authStatus)

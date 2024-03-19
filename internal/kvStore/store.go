@@ -1,7 +1,7 @@
-package session
+package kvStore
 
 // interface for all stores
-type SessionStore interface {
+type Store interface {
 	Set(key string, value []byte, expiry int) error
 	Get(key string) ([]byte, error)
 	Delete(key string) error

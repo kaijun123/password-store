@@ -1,4 +1,4 @@
-package session
+package kvStore
 
 import (
 	"context"
@@ -58,4 +58,4 @@ func (r *Redis) Delete(key string) error {
 }
 
 // Compile-time check to ensure *Redis implements SessionStore interface
-var _ SessionStore = &Redis{}
+var _ Store = &Redis{}

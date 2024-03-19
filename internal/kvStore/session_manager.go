@@ -1,4 +1,4 @@
-package session
+package kvStore
 
 import (
 	"encoding/json"
@@ -8,14 +8,16 @@ import (
 
 type SessionManager struct {
 	cookieName                  string
+	prefix                      string
 	expirationDurationInSeconds int
 	randomStringLength          int
-	sessionStore                SessionStore
+	sessionStore                Store
 }
 
-func NewDefaultManager(sessionStore SessionStore) *SessionManager {
+func NewSessionManager(sessionStore Store) *SessionManager {
 	return &SessionManager{
 		cookieName:                  "default_cookie_name",
+		prefix:                      SessionPrefix,
 		expirationDurationInSeconds: 5 * 3600,
 		randomStringLength:          20,
 		sessionStore:                sessionStore,
@@ -50,8 +52,8 @@ func (m *SessionManager) createSessionId(username string) string {
 	time := time.Now().String()
 	randomString := util.GenerateRandomString(m.randomStringLength)
 
-	// Format: session_manager:<time>:<username>:<random_string>
-	sessionId := "session_manager:" + time + ":" + username + ":" + randomString
+	// Format: session://<time>:<username>:<random_string>
+	sessionId := m.prefix + time + ":" + username + ":" + randomString
 	// fmt.Println("sessionId: " + sessionId)
 	hashedSessionId := util.Hash([]byte(sessionId))
 	// fmt.Println("hashedSessionId: " + string(hashedSessionId))
