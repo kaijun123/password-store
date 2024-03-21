@@ -42,7 +42,7 @@ func AuthMiddleware(c *gin.Context, sessionManager kvStore.SessionManager) {
 	// This is because sign-in does not require a cookie
 	// Individual Auth handlers will need to handle this error
 	if !hasAuthStatus || authStatus != constants.AuthAuthenticated {
-		if !hasAuthStatus {
+		if !hasAuthStatus || authStatus == constants.AuthServerErr {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": constants.AuthServerErr,
 			})
@@ -52,10 +52,6 @@ func AuthMiddleware(c *gin.Context, sessionManager kvStore.SessionManager) {
 			})
 		} else if authStatus == constants.AuthNoSession {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": authStatus,
-			})
-		} else if authStatus == constants.AuthServerErr {
-			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": authStatus,
 			})
 		}

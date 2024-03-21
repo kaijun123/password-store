@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"password_store/internal/constants"
 	"password_store/internal/util"
 )
@@ -48,6 +49,7 @@ func (m *IdempotencyManager) SetUserGeneratedKeyLength(duration int) {
 func (m *IdempotencyManager) createIdempotencyId(userGeneratedKey string) (string, error) {
 
 	if len(userGeneratedKey) != m.userGeneratedKeyLength {
+		// TODO: change to bad request later
 		return "", errors.New("invalid length for user generated key")
 	}
 	// Format: idempotency-key://<user-generated-key>
@@ -73,23 +75,28 @@ func (m *IdempotencyManager) GetIdempotency(userGeneratedKey string, sessionId s
 	// Get idempotency data from the idempotency store
 	idempotencyBytes, err := m.idempotencyStore.Get(idempotencyId)
 	if err != nil {
-		return Idempotency{}, err
+		return Idempotency{}, errors.New(constants.IdempNew)
 	}
 
 	idempotency := CreateIdempotency(sessionId, "", "", 0, []byte{}, []byte{})
 	if err := json.Unmarshal(idempotencyBytes, &idempotency); err != nil {
-		return Idempotency{}, err
+		return Idempotency{}, errors.New(constants.IdempServerErr)
 	}
 
 	// Check for the sessionId
 	if idempotency.SessionId != sessionId {
-		return Idempotency{}, errors.New("invalid idempotency request")
+		fmt.Println("idempotency.SessionId: ", idempotency.SessionId)
+		fmt.Println("sessionId: ", sessionId)
+		return Idempotency{}, errors.New(constants.IdempBadRequest)
 	}
 
 	// Check for the hash
+	fmt.Println("request: ", string(request))
 	calculatedHash := util.Hash(request)
+	fmt.Println("idempotency.Hash: ", fmt.Sprintf("%x", idempotency.Hash))
+	fmt.Println("calculatedHash: ", fmt.Sprintf("%x", calculatedHash))
 	if !bytes.Equal(idempotency.Hash, calculatedHash) {
-		return Idempotency{}, errors.New("invalid idempotency request")
+		return Idempotency{}, errors.New(constants.IdempBadRequest)
 	}
 
 	return idempotency, nil
@@ -106,6 +113,31 @@ func (m *IdempotencyManager) SetIdempotency(userGeneratedKey string, sessionId s
 
 	calculatedHash := util.Hash(request)
 	idempotency := CreateIdempotency(userGeneratedKey, sessionId, status, m.expirationDurationInSeconds, request, calculatedHash)
+	idempotencyBytes, err := json.Marshal(idempotency)
+	if err != nil {
+		return err
+	}
+
+	if err := m.idempotencyStore.Set(idempotencyId, idempotencyBytes, m.expirationDurationInSeconds); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Add the idempotency key to the store
+// Use the idempotency prefix
+func (m *IdempotencyManager) UpdateIdempotency(userGeneratedKey string, sessionId string, newStatus string, request []byte) error {
+
+	idempotency, err := m.GetIdempotency(userGeneratedKey, sessionId, request)
+	if err != nil {
+		return err
+	}
+	idempotency.Status = newStatus
+
+	idempotencyId, err := m.createIdempotencyId(userGeneratedKey)
+	if err != nil {
+		return err
+	}
 	idempotencyBytes, err := json.Marshal(idempotency)
 	if err != nil {
 		return err

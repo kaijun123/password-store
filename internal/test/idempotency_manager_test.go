@@ -70,6 +70,12 @@ func TestIdempotency(t *testing.T) {
 	_, err = idempotencyManager.GetIdempotency(testUserGeneratedKey, "test", reqBytes)
 	assert.NotNil(t, err)
 
+	err = idempotencyManager.UpdateIdempotency(testUserGeneratedKey, testSessionId, constants.IdempSuccess, reqBytes)
+	assert.Nil(t, err)
+	updatedIdempotency, err := idempotencyManager.GetIdempotency(testUserGeneratedKey, testSessionId, reqBytes)
+	assert.Nil(t, err)
+	assert.Equal(t, constants.IdempSuccess, updatedIdempotency.Status)
+
 	// Delete
 	err = idempotencyManager.DeleteIdempotency(testUserGeneratedKey)
 	assert.Nil(t, err)

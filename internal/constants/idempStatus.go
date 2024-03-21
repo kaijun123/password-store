@@ -6,6 +6,8 @@ const (
 	IdempFailed  = "Idemp Failed"
 	IdempSuccess = "Idemp Success"
 	// IdempPending    = "Idemp Pending"
-	IdempBadRequest = "Idemp Bad Request"
-	IdempServerErr  = "Server Error"
+	IdempNoUserGenKey = "Idemp No User Generated Key"
+	IdempBadRequest   = "Idemp Bad Request"
+	IdempServerErr    = "Idemp Server Error"
+	IdempBytes        = "Idemp Bytes"
 )

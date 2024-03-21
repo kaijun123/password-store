@@ -1,7 +1,5 @@
 package database
 
-import "gorm.io/gorm"
-
 // Credentials provided by the user during sign-up and sign-in
 type RawUserCredentials struct {
 	Username string `json:"username"`
@@ -18,15 +16,15 @@ type StoredUserCredentials struct {
 // Struct for all types of transactions
 // Type can be "Transfer", "Deposit", "Withdrawal"
 type UserTransaction struct {
-	gorm.Model
-	Type string  `json:"type,omitempty"`
-	From string  `json:"from,omitempty"`
-	To   string  `json:"to,omitempty"`
-	Amt  float32 `json:"amt"`
+	// ID        uint      `json:"id,omitempty" gorm:"primarykey"`
+	// CreatedAt time.Time `json:"created,omitempty"`
+	Type string `json:"type,omitempty"`
+	From string `json:"from,omitempty"`
+	To   string `json:"to,omitempty"`
+	Amt  int    `json:"amt"`
 }
 
 type UserBalance struct {
-	gorm.Model
-	Username string  `json:"username"`
-	Balance  float32 `json:"balance"`
+	Username string `json:"username" gorm:"primaryKey"`
+	Balance  int    `json:"balance,omitempty"`
 }

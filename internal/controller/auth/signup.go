@@ -64,9 +64,10 @@ func SignUpController(c *gin.Context, db *gorm.DB, sessionManager *kvStore.Sessi
 		return
 	}
 
+	// TODO: Create a row in the UserBalance database
+
 	// sends back a sample response
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
 	})
-	return
 }
