@@ -22,16 +22,17 @@ func FetchBalanceHandler(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	var userBalance database.UserBalance
-	if err := c.BindJSON(&userBalance); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": constants.IdempServerErr,
-		})
-	}
-
 	// Authenticated
 	if authStatus == constants.AuthAuthenticated {
+
 		var userBalance database.UserBalance
+		if err := c.BindJSON(&userBalance); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": constants.IdempServerErr,
+			})
+			return
+		}
+
 		if err := db.Where("username = ?", userBalance.Username).First(&userBalance).Error; err != nil {
 			// User does not exist/ DB issue
 			c.JSON(http.StatusBadRequest, gin.H{
