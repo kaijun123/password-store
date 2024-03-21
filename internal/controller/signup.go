@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"password_store/internal/constants"
 	"password_store/internal/database"
 	"password_store/internal/kvStore"
 	"password_store/internal/util"
@@ -12,9 +13,14 @@ import (
 )
 
 func SignUpController(c *gin.Context, db *gorm.DB, sessionManager *kvStore.SessionManager) {
-	// bind the request body to the struct RawCredentials
-	var rc database.RawCredentials
-	c.Bind(&rc)
+	// bind the request body to the struct RawUserCredentials
+	var rc database.RawUserCredentials
+	if err := c.BindJSON(&rc); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": constants.AuthBadRequest,
+		})
+		return
+	}
 
 	// print out the values in the struct
 	username := rc.Username
@@ -25,12 +31,11 @@ func SignUpController(c *gin.Context, db *gorm.DB, sessionManager *kvStore.Sessi
 
 	// check if the username provided is used. Each username can only be used once
 	// If result.Error == nil -> you didn't manage to find a record -> username is already in use
-	var storedCredentials database.StoredCredentials
-	if result := db.First(&storedCredentials, "username = ?", username); result.Error == nil {
+	var storedUserCredentials database.StoredUserCredentials
+	if result := db.First(&storedUserCredentials, "username = ?", username); result.Error == nil {
 		// fmt.Println(result.Error)
-		c.JSON(http.StatusOK, gin.H{
-			"sign-up": "fail",
-			"error":   "username already used",
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "username already used",
 		})
 		return
 	}
@@ -46,23 +51,22 @@ func SignUpController(c *gin.Context, db *gorm.DB, sessionManager *kvStore.Sessi
 	hash := util.Hash([]byte(combinedString))
 	fmt.Printf("%x", string(hash))
 
-	storedCredentials = database.StoredCredentials{
+	storedUserCredentials = database.StoredUserCredentials{
 		Username: username,
 		Salt:     salt,
 		Hash:     hash,
 	}
 
-	if result := db.Create(&storedCredentials); result.Error != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"sign-up": "fail",
-			"error":   result.Error,
+	if result := db.Create(&storedUserCredentials); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": constants.AuthServerErr,
 		})
 		return
 	}
 
 	// sends back a sample response
 	c.JSON(http.StatusOK, gin.H{
-		"sign-up": "successful",
-		"error":   "null",
+		"status": "success",
 	})
+	return
 }

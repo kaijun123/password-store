@@ -43,5 +43,30 @@ func (d *Database) Init() {
 }
 
 func (d *Database) AutoMigrate() {
-	d.Db.AutoMigrate(StoredCredentials{})
+	d.Db.AutoMigrate(StoredUserCredentials{})
+	d.Db.AutoMigrate(UserBalance{})
+	d.Db.AutoMigrate(UserTransaction{})
+}
+
+var defaultPassword string = "password"
+var defaultSalt string = "defaultSalt"
+
+var seedUserCredentials = []StoredUserCredentials{
+	{Username: "alice", Salt: defaultSalt, Hash: util.Hash([]byte(defaultPassword + defaultSalt))},
+	{Username: "bob", Salt: defaultSalt, Hash: util.Hash([]byte(defaultPassword + defaultSalt))},
+}
+
+var seedUserBalance = []UserBalance{
+	{Username: "alice", Balance: 100000},
+	{Username: "bob", Balance: 100000},
+}
+
+func (d *Database) Seed() {
+	for _, cred := range seedUserCredentials {
+		d.Db.Create(&cred)
+	}
+
+	for _, balance := range seedUserBalance {
+		d.Db.Create(&balance)
+	}
 }

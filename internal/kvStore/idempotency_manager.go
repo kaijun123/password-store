@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"password_store/internal/constants"
 	"password_store/internal/util"
 )
 
 type IdempotencyManager struct {
+	requestHeader               string
 	prefix                      string
 	expirationDurationInSeconds int
 	userGeneratedKeyLength      int
@@ -16,13 +18,17 @@ type IdempotencyManager struct {
 
 func NewIdempotencyManager(idempotencyStore Store) *IdempotencyManager {
 	return &IdempotencyManager{
-		prefix:                      IdempotencyPrefix,
+		requestHeader:               "Idempotency-Key",
+		prefix:                      constants.IdempotencyPrefix,
 		expirationDurationInSeconds: 24 * 3600, // 24 hours
 		userGeneratedKeyLength:      10,        // length of user-generated key
 		idempotencyStore:            idempotencyStore,
 	}
 }
 
+func (m *IdempotencyManager) GetRequestHeader() string {
+	return m.requestHeader
+}
 func (m *IdempotencyManager) GetExpiryDuration() int {
 	return m.expirationDurationInSeconds
 }
@@ -39,7 +45,7 @@ func (m *IdempotencyManager) SetUserGeneratedKeyLength(duration int) {
 	m.userGeneratedKeyLength = duration
 }
 
-func (m *IdempotencyManager) createIdempotencyKey(userGeneratedKey string) (string, error) {
+func (m *IdempotencyManager) createIdempotencyId(userGeneratedKey string) (string, error) {
 
 	if len(userGeneratedKey) != m.userGeneratedKeyLength {
 		return "", errors.New("invalid length for user generated key")
@@ -57,9 +63,9 @@ func (m *IdempotencyManager) createIdempotencyKey(userGeneratedKey string) (stri
 // value: byte form of Idempotency struct
 
 // Retrieve the idempotency key
-func (m *IdempotencyManager) GetIdempotency(userGeneratedKey string, sessionId string, hash []byte) (Idempotency, error) {
+func (m *IdempotencyManager) GetIdempotency(userGeneratedKey string, sessionId string, request []byte) (Idempotency, error) {
 
-	idempotencyId, err := m.createIdempotencyKey(userGeneratedKey)
+	idempotencyId, err := m.createIdempotencyId(userGeneratedKey)
 	if err != nil {
 		return Idempotency{}, nil
 	}
@@ -81,7 +87,8 @@ func (m *IdempotencyManager) GetIdempotency(userGeneratedKey string, sessionId s
 	}
 
 	// Check for the hash
-	if !bytes.Equal(idempotency.Hash, hash) {
+	calculatedHash := util.Hash(request)
+	if !bytes.Equal(idempotency.Hash, calculatedHash) {
 		return Idempotency{}, errors.New("invalid idempotency request")
 	}
 
@@ -90,15 +97,15 @@ func (m *IdempotencyManager) GetIdempotency(userGeneratedKey string, sessionId s
 
 // Add the idempotency key to the store
 // Use the idempotency prefix
-func (m *IdempotencyManager) SetIdempotency(userGeneratedKey string, sessionId string, request []byte) error {
+func (m *IdempotencyManager) SetIdempotency(userGeneratedKey string, sessionId string, status string, request []byte) error {
 
-	idempotencyId, err := m.createIdempotencyKey(userGeneratedKey)
+	idempotencyId, err := m.createIdempotencyId(userGeneratedKey)
 	if err != nil {
 		return err
 	}
 
 	calculatedHash := util.Hash(request)
-	idempotency := CreateIdempotency(userGeneratedKey, sessionId, Pending, m.expirationDurationInSeconds, request, calculatedHash)
+	idempotency := CreateIdempotency(userGeneratedKey, sessionId, status, m.expirationDurationInSeconds, request, calculatedHash)
 	idempotencyBytes, err := json.Marshal(idempotency)
 	if err != nil {
 		return err
@@ -111,7 +118,7 @@ func (m *IdempotencyManager) SetIdempotency(userGeneratedKey string, sessionId s
 }
 
 func (m *IdempotencyManager) DeleteIdempotency(userGeneratedKey string) error {
-	idempotencyId, err := m.createIdempotencyKey(userGeneratedKey)
+	idempotencyId, err := m.createIdempotencyId(userGeneratedKey)
 	if err != nil {
 		return err
 	}

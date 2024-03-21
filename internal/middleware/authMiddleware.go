@@ -2,38 +2,63 @@ package middleware
 
 import (
 	"net/http"
+	"password_store/internal/constants"
 	"password_store/internal/kvStore"
 
 	"github.com/gin-gonic/gin"
 )
 
-// TODO: Create an enum for the AuthStatus
-
 // checks if there is an existing session
 func AuthMiddleware(c *gin.Context, sessionManager kvStore.SessionManager) {
 	sessionId, err := c.Cookie(sessionManager.GetCookieName())
+
 	if err != nil {
 		// bad request
 		if err == http.ErrNoCookie {
-			c.Set("Auth Status", "No Cookie")
+			c.Set(constants.AuthStatus, constants.AuthNoCookie)
 		} else {
-			c.Set("Auth Status", "Bad Request")
+			c.Set(constants.AuthStatus, constants.AuthBadRequest)
 		}
-		c.Next()
-		return
 	} else {
 		session, err := sessionManager.GetSession(sessionId)
 		if err != nil {
-			c.Set("Auth Status", "No Session")
+			c.Set(constants.AuthStatus, constants.AuthNoSession)
 		} else {
 			if session.IsExpired() {
-				sessionManager.DeleteSession(sessionId) // ignore error as of now
-				c.Set("Auth Status", "No Session")
+				if err := sessionManager.DeleteSession(sessionId); err != nil {
+					c.Set(constants.AuthStatus, constants.AuthServerErr)
+				} else {
+					c.Set(constants.AuthStatus, constants.AuthNoSession)
+				}
 			} else {
-				c.Set("Auth Status", "Authenticated")
+				c.Set(constants.AuthStatus, constants.AuthAuthenticated)
 			}
 		}
-		c.Next()
-		return
 	}
+
+	authStatus, hasAuthStatus := c.Get(constants.AuthStatus)
+
+	// Does not handle AuthStatus = AuthNoCookie
+	// This is because sign-in does not require a cookie
+	// Individual Auth handlers will need to handle this error
+	if !hasAuthStatus || authStatus != constants.AuthAuthenticated {
+		if !hasAuthStatus {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": constants.AuthServerErr,
+			})
+		} else if authStatus == constants.AuthBadRequest {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": authStatus,
+			})
+		} else if authStatus == constants.AuthNoSession {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": authStatus,
+			})
+		} else if authStatus == constants.AuthServerErr {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": authStatus,
+			})
+		}
+	}
+	c.Next()
 }

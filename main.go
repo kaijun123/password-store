@@ -24,11 +24,12 @@ func main() {
 	redis.CreateClient()
 
 	sessionManager := kvStore.NewSessionManager(redis)
-	idempotencyManager := kvStore.NewIdempotencyManager(redis)
+	idempManager := kvStore.NewIdempotencyManager(redis)
 
 	database := &database.Database{}
 	database.Init()
 	database.AutoMigrate()
+	database.Seed()
 
 	router := gin.Default()
 
@@ -56,6 +57,17 @@ func main() {
 				middleware.AuthMiddleware(c, *sessionManager)
 			}, func(c *gin.Context) {
 				controller.RefreshCookieHandler(c, sessionManager)
+			})
+		}
+
+		txn := v1.Group("txn")
+		{
+			txn.POST("/transfer", func(c *gin.Context) {
+				middleware.AuthMiddleware(c, *sessionManager)
+			}, func(c *gin.Context) {
+				middleware.IdempMiddleware(c, *sessionManager, *idempManager)
+			}, func(c *gin.Context) {
+				controller.TransferHandler(c, sessionManager, idempManager, database.Db)
 			})
 		}
 

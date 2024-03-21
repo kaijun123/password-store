@@ -2,7 +2,9 @@ package kvStore
 
 import (
 	"encoding/json"
+	"password_store/internal/constants"
 	"password_store/internal/util"
+
 	"time"
 )
 
@@ -17,7 +19,7 @@ type SessionManager struct {
 func NewSessionManager(sessionStore Store) *SessionManager {
 	return &SessionManager{
 		cookieName:                  "default_cookie_name",
-		prefix:                      SessionPrefix,
+		prefix:                      constants.SessionPrefix,
 		expirationDurationInSeconds: 5 * 3600,
 		randomStringLength:          20,
 		sessionStore:                sessionStore,

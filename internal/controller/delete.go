@@ -11,8 +11,8 @@ package controller
 
 // // TODO: Need to remove the session too
 // func DeleteUserController(c *gin.Context, db *gorm.DB) {
-// 	// bind the request body to the struct RawCredentials
-// 	var rc database.RawCredentials
+// 	// bind the request body to the struct RawUserCredentials
+// 	var rc database.RawUserCredentials
 // 	c.Bind(&rc)
 
 // 	// print out the values in the struct

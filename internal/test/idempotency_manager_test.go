@@ -2,7 +2,9 @@ package test
 
 import (
 	"encoding/json"
+	"password_store/internal/constants"
 	"password_store/internal/kvStore"
+
 	"password_store/internal/util"
 	"testing"
 
@@ -45,14 +47,14 @@ func TestIdempotency(t *testing.T) {
 	reqBytes, err := json.Marshal(req)
 	assert.Nil(t, err)
 	calculatedHash := util.Hash(reqBytes)
-	expectedIdempotency := kvStore.CreateIdempotency(testUserGeneratedKey, testSessionId, kvStore.Pending, testIdempotencyExpirationDuration, reqBytes, calculatedHash)
+	expectedIdempotency := kvStore.CreateIdempotency(testUserGeneratedKey, testSessionId, constants.IdempNew, testIdempotencyExpirationDuration, reqBytes, calculatedHash)
 
 	// Successful Set
-	err = idempotencyManager.SetIdempotency(testUserGeneratedKey, testSessionId, reqBytes)
+	err = idempotencyManager.SetIdempotency(testUserGeneratedKey, testSessionId, constants.IdempNew, reqBytes)
 	assert.Nil(t, err)
 
 	// Successful Get
-	actualIdempotency, err := idempotencyManager.GetIdempotency(testUserGeneratedKey, testSessionId, calculatedHash)
+	actualIdempotency, err := idempotencyManager.GetIdempotency(testUserGeneratedKey, testSessionId, reqBytes)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedIdempotency.Key, actualIdempotency.Key)
 	assert.Equal(t, expectedIdempotency.SessionId, actualIdempotency.SessionId)
@@ -65,7 +67,7 @@ func TestIdempotency(t *testing.T) {
 	assert.NotNil(t, err)
 
 	// Failed Get (Wrong sessionId)
-	_, err = idempotencyManager.GetIdempotency(testUserGeneratedKey, "test", calculatedHash)
+	_, err = idempotencyManager.GetIdempotency(testUserGeneratedKey, "test", reqBytes)
 	assert.NotNil(t, err)
 
 	// Delete

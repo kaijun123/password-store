@@ -2,12 +2,6 @@ package kvStore
 
 import "time"
 
-const (
-	Failed  = "failed"
-	Success = "success"
-	Pending = "pending"
-)
-
 type Idempotency struct {
 	Key       string    // user-generated key
 	SessionId string    // session id corresponding to the user

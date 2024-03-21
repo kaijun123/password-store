@@ -34,6 +34,7 @@ func (r *Redis) CreateClient() {
 
 // Sets an expiry when adding the key-value pair into redis
 // Redis will remove the key-value pair when the expiry date reaches
+// Overwrites any existing key-value pair
 func (r *Redis) Set(key string, value []byte, expiry int) error {
 	expiryDuration := time.Duration(expiry) * time.Minute
 	if err := r.client.Set(r.ctx, key, value, expiryDuration).Err(); err != nil {
@@ -57,5 +58,5 @@ func (r *Redis) Delete(key string) error {
 	return nil
 }
 
-// Compile-time check to ensure *Redis implements SessionStore interface
+// Compile-time check to ensure *Redis implements Store interface
 var _ Store = &Redis{}
