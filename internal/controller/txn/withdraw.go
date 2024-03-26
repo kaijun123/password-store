@@ -48,6 +48,82 @@ func WithdrawHandler(c *gin.Context, sessionManager *kvStore.SessionManager, ide
 				return
 			}
 
+			fromPerson := userTransaction.From
+			amt := userTransaction.Amt
+			if fromPerson == "" || amt == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": constants.IdempBadRequest,
+				})
+				return
+			}
+
+			// Check if the fromPerson is the same as the user
+			// ie the user is only authorized to withdraw money from their own bank account
+			sess, hasSess := c.Get("session")
+			// an authorized user should always have the session set
+			if !hasSess {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": constants.AuthServerErr,
+				})
+				return
+			}
+
+			session, hasSession := sess.(kvStore.Session)
+			if !hasSession {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": constants.AuthServerErr,
+				})
+				return
+			}
+
+			if fromPerson != session.Username {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "Invalid withdraw account",
+				})
+				return
+			}
+
+			// Read the amount that the user currently has
+			var balance database.UserBalance
+			if err := db.First(&balance, "username = ?", userTransaction.From).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Unable to find user account",
+				})
+				return
+			}
+
+			// Check if there is sufficient balance
+			newAmt := balance.Balance - amt
+			if newAmt < 0 {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "insufficient balance",
+				})
+				return
+			}
+
+			// Write the new amount
+			if err := db.Model(database.UserBalance{}).Where("username = ?", fromPerson).Update("balance", newAmt).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Unable to update the balance",
+				})
+				return
+			}
+
+			// Successful operation
+			c.JSON(http.StatusOK, gin.H{
+				"status": "success",
+			})
+
+			// Write/ update the idemp status
+			sessionId, _ := c.Cookie(sessionManager.GetCookieName()) // Error already handled in Auth middleware
+			userGenIdempKey := c.GetHeader(idempManager.GetRequestHeader())
+			if idempStatus == constants.IdempFailed {
+				// fmt.Println("updated status from failed to success")
+				idempManager.UpdateIdempotency(userGenIdempKey, sessionId, constants.IdempSuccess, userTransactionBytes.([]byte))
+			} else {
+				// fmt.Println("wrote idemp status as success")
+				idempManager.SetIdempotency(userGenIdempKey, sessionId, constants.IdempSuccess, userTransactionBytes.([]byte))
+			}
 		}
 	}
 }
