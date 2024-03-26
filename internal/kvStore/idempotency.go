@@ -3,12 +3,12 @@ package kvStore
 import "time"
 
 type Idempotency struct {
-	Key       string    // user-generated key
-	SessionId string    // session id corresponding to the user
-	Status    string    // request status
-	Expiry    time.Time // exact expiry time
-	Request   []byte    // request body converted to bytes
-	Hash      []byte    // hash of the request. Used to verify that request made matches the particular idempotency key
+	Key       string    `json:"key"`       // user-generated key
+	SessionId string    `json:"sessionId"` // session id corresponding to the user
+	Status    string    `json:"status"`    // request status
+	Expiry    time.Time `json:"expiry"`    // exact expiry time
+	Request   []byte    `json:"request"`   // request body converted to bytes
+	Hash      []byte    `json:"hash"`      // hash of the request. Used to verify that request made matches the particular idempotency key
 }
 
 func CreateIdempotency(key string, sessionId string, status string, expiry int, request []byte, hash []byte) Idempotency {

@@ -32,6 +32,7 @@ func AuthMiddleware(c *gin.Context, sessionManager kvStore.SessionManager) {
 				}
 			} else {
 				c.Set(constants.AuthStatus, constants.AuthAuthenticated)
+				c.Set("session", session)
 			}
 		}
 	}

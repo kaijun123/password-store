@@ -8,6 +8,7 @@ import (
 	"password_store/internal/constants"
 	"password_store/internal/database"
 	"password_store/internal/kvStore"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -36,6 +37,8 @@ func TransferHandler(c *gin.Context, sessionManager *kvStore.SessionManager, ide
 			sessionId, _ := c.Cookie(sessionManager.GetCookieName()) // Error already handled in Auth middleware
 			userGenIdempKey := c.GetHeader(idempManager.GetRequestHeader())
 
+			// fmt.Println("(transferHandler) received sessionId: ", []byte(sessionId))
+
 			userTransactionBytes, _ := c.Get(constants.IdempBytes)
 
 			var userTransaction database.UserTransaction
@@ -45,9 +48,9 @@ func TransferHandler(c *gin.Context, sessionManager *kvStore.SessionManager, ide
 				})
 				return
 			}
-			fmt.Println("userTransaction:", userTransaction)
+			// fmt.Println("userTransaction:", userTransaction)
 
-			if userTransaction.Type != "transfer" {
+			if strings.ToLower(userTransaction.Type) != "transfer" {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error": constants.IdempBadRequest,
 				})
@@ -58,9 +61,9 @@ func TransferHandler(c *gin.Context, sessionManager *kvStore.SessionManager, ide
 			toPerson := userTransaction.To
 			amt := userTransaction.Amt
 
-			fmt.Println("fromPerson: ", fromPerson)
-			fmt.Println("toPerson: ", toPerson)
-			fmt.Println("amt: ", amt)
+			// fmt.Println("fromPerson: ", fromPerson)
+			// fmt.Println("toPerson: ", toPerson)
+			// fmt.Println("amt: ", amt)
 
 			// TODO: Not thread-safe. Implement row-locking mechanism.
 			err := db.Transaction(func(tx *gorm.DB) error {
@@ -69,13 +72,13 @@ func TransferHandler(c *gin.Context, sessionManager *kvStore.SessionManager, ide
 				if err := tx.Where("username = ?", fromPerson).First(&fromBalance).Error; err != nil {
 					return errors.New("cannot get from balance")
 				}
-				fmt.Println("fromBalance", fromBalance)
+				// fmt.Println("fromBalance", fromBalance)
 
 				var toBalance database.UserBalance
 				if err := tx.Where("username = ?", toPerson).First(&toBalance).Error; err != nil {
 					return errors.New("cannot get to balance")
 				}
-				fmt.Println("toBalance", toBalance)
+				// fmt.Println("toBalance", toBalance)
 
 				// verify that fromBalance > amt
 				fmt.Println("fromBalance.Balance - amt", fromBalance.Balance-amt)
@@ -86,7 +89,7 @@ func TransferHandler(c *gin.Context, sessionManager *kvStore.SessionManager, ide
 				if err := tx.Model(&database.UserBalance{}).Where("username = ?", fromPerson).Update("balance", fromBalance.Balance-amt).Error; err != nil {
 					return errors.New("cannot update from balance")
 				}
-				fmt.Println(toBalance)
+				// fmt.Println(toBalance)
 
 				if err := tx.Model(&database.UserBalance{}).Where("username = ?", toPerson).Update("balance", toBalance.Balance+amt).Error; err != nil {
 					return errors.New("cannot update to balance")
@@ -112,10 +115,10 @@ func TransferHandler(c *gin.Context, sessionManager *kvStore.SessionManager, ide
 
 				// Write/ update the idemp status
 				if idempStatus == constants.IdempFailed {
-					fmt.Println("updated status from failed to success")
+					// fmt.Println("updated status from failed to success")
 					idempManager.UpdateIdempotency(userGenIdempKey, sessionId, constants.IdempSuccess, userTransactionBytes.([]byte))
 				} else {
-					fmt.Println("wrote idemp status as success")
+					// fmt.Println("wrote idemp status as success")
 					idempManager.SetIdempotency(userGenIdempKey, sessionId, constants.IdempSuccess, userTransactionBytes.([]byte))
 				}
 			}

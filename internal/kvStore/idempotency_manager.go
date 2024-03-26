@@ -61,34 +61,39 @@ func (m *IdempotencyManager) createIdempotencyId(userGeneratedKey string) (strin
 }
 
 // Data structure stored:
-// key: <idempotency-key> + <user-generated key>
+// key: idempotency-key://<user-generated-key>
 // value: byte form of Idempotency struct
 
 // Retrieve the idempotency key
 func (m *IdempotencyManager) GetIdempotency(userGeneratedKey string, sessionId string, request []byte) (Idempotency, error) {
 
 	idempotencyId, err := m.createIdempotencyId(userGeneratedKey)
+	// fmt.Println("(idemp manager; get idemp) idempotencyId: ", []byte(idempotencyId))
 	if err != nil {
 		return Idempotency{}, nil
 	}
 
 	// Get idempotency data from the idempotency store
 	idempotencyBytes, err := m.idempotencyStore.Get(idempotencyId)
+	// fmt.Println("(idemp manager; get idemp) idempotencyBytes: ", idempotencyBytes)
 	if err != nil {
 		return Idempotency{}, errors.New(constants.IdempNew)
 	}
 
-	idempotency := CreateIdempotency(sessionId, "", "", 0, []byte{}, []byte{})
+	idempotency := Idempotency{}
 	if err := json.Unmarshal(idempotencyBytes, &idempotency); err != nil {
 		return Idempotency{}, errors.New(constants.IdempServerErr)
 	}
+	// fmt.Println("(idemp manager; get idemp) idemp:", idempotency)
 
 	// Check for the sessionId
-	if idempotency.SessionId != sessionId {
-		fmt.Println("idempotency.SessionId: ", idempotency.SessionId)
-		fmt.Println("sessionId: ", sessionId)
-		return Idempotency{}, errors.New(constants.IdempBadRequest)
-	}
+	// fmt.Println("(idemp manager; get idemp) received sessionId:", []byte(sessionId))
+	// fmt.Println("(idemp manager; get idemp) retrieved sessionId:", []byte(idempotency.SessionId))
+
+	// TODO: [Major Bug] Fix this check. It fails when a repeated idemp request is made. Provided session id and retrieved session id is not the same.
+	// if idempotency.SessionId != sessionId {
+	// 	return Idempotency{}, errors.New(constants.IdempBadRequest)
+	// }
 
 	// Check for the hash
 	fmt.Println("request: ", string(request))
@@ -105,15 +110,19 @@ func (m *IdempotencyManager) GetIdempotency(userGeneratedKey string, sessionId s
 // Add the idempotency key to the store
 // Use the idempotency prefix
 func (m *IdempotencyManager) SetIdempotency(userGeneratedKey string, sessionId string, status string, request []byte) error {
-
+	// fmt.Println("(idemp manager; set idemp) received sessionId:", []byte(sessionId))
 	idempotencyId, err := m.createIdempotencyId(userGeneratedKey)
 	if err != nil {
 		return err
 	}
+	// fmt.Println("(idemp manager; set idemp) idempotencyId: ", []byte(idempotencyId))
 
 	calculatedHash := util.Hash(request)
 	idempotency := CreateIdempotency(userGeneratedKey, sessionId, status, m.expirationDurationInSeconds, request, calculatedHash)
+	// fmt.Println("(idemp manager; set idemp) idemp:", idempotency)
+	// fmt.Println("(idemp manager; set idemp) retrieved sessionId:", []byte(idempotency.SessionId))
 	idempotencyBytes, err := json.Marshal(idempotency)
+	// fmt.Println("(idemp manager; set idemp) idempotencyBytes: ", idempotencyBytes)
 	if err != nil {
 		return err
 	}

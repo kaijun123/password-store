@@ -72,6 +72,14 @@ func main() {
 				txn.TransferHandler(c, sessionManager, idempManager, database.Db)
 			})
 
+			txnGroup.POST("/deposit", func(c *gin.Context) {
+				middleware.AuthMiddleware(c, *sessionManager)
+			}, func(c *gin.Context) {
+				middleware.IdempMiddleware(c, *sessionManager, *idempManager)
+			}, func(c *gin.Context) {
+				txn.DepositHandler(c, sessionManager, idempManager, database.Db)
+			})
+
 			txnGroup.POST("/fetch-balance", func(c *gin.Context) {
 				middleware.AuthMiddleware(c, *sessionManager)
 			}, func(c *gin.Context) {

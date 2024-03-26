@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"password_store/internal/constants"
 	"password_store/internal/database"
@@ -15,17 +14,17 @@ import (
 func IdempMiddleware(c *gin.Context, sessionManager kvStore.SessionManager, idempManager kvStore.IdempotencyManager) {
 	sessionId, _ := c.Cookie(sessionManager.GetCookieName()) // Error already handled in Auth middleware
 
+	// fmt.Println("(idempMiddleware) received sessionId: ", []byte(sessionId))
+
 	// check if the user is authenticated
 	authStatus, hasAuthStatus := c.Get(constants.AuthStatus)
 
 	if !hasAuthStatus || authStatus != constants.AuthAuthenticated {
-		fmt.Println("entered here")
-		fmt.Println("authStatus: ", authStatus)
-		fmt.Println("hasAuthStatus: ", hasAuthStatus)
-
+		// No need to send response. Response would be provided by the authMiddleware
 		c.Set(constants.IdempStatus, constants.IdempBadRequest)
 		c.Next()
 		return
+
 	} else {
 		// Get userGenIdempKey
 		userGenIdempKey := c.GetHeader(idempManager.GetRequestHeader())
@@ -35,6 +34,7 @@ func IdempMiddleware(c *gin.Context, sessionManager kvStore.SessionManager, idem
 			c.Set(constants.IdempStatus, constants.IdempNoUserGenKey)
 
 		} else {
+			// fmt.Println("(idemp middleware) userGenIdempKey: ", userGenIdempKey)
 			var userTransaction database.UserTransaction
 			if err := c.BindJSON(&userTransaction); err != nil {
 				c.Set(constants.IdempStatus, constants.IdempServerErr)
@@ -46,7 +46,6 @@ func IdempMiddleware(c *gin.Context, sessionManager kvStore.SessionManager, idem
 
 				} else {
 					idemp, err := idempManager.GetIdempotency(userGenIdempKey, sessionId, userTransactionBytes)
-					fmt.Println("idemp:", idemp)
 
 					if err != nil {
 						if err.Error() == constants.IdempNew {
