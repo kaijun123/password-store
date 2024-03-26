@@ -57,14 +57,27 @@ func SignUpController(c *gin.Context, db *gorm.DB, sessionManager *kvStore.Sessi
 		Hash:     hash,
 	}
 
-	if result := db.Create(&storedUserCredentials); result.Error != nil {
+	// Use transaction
+	// Create user credential
+	tx := db.Begin()
+	if result := tx.Create(&storedUserCredentials); result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": constants.AuthServerErr,
 		})
+		tx.Rollback()
 		return
 	}
 
-	// TODO: Create a row in the UserBalance database
+	// Create user balance
+	newBalance := database.UserBalance{Username: username, Balance: 0}
+	if result := tx.Create(&newBalance); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "unable to create new user balance",
+		})
+		tx.Rollback()
+		return
+	}
+	tx.Commit()
 
 	// sends back a sample response
 	c.JSON(http.StatusOK, gin.H{
